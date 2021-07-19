@@ -28,7 +28,7 @@ def pivot(N, B, A, b, c, v, l, e):
         if i == l:
             continue
 
-        alpha = A_[l][N[e]]
+        alpha = A_[i][N[e]]
 
         print("alpha", alpha)
 
