@@ -1,20 +1,24 @@
 import numpy as np
 import sys
 
+# V = vero
+# N = non-basic
+# B = basic
 def pivot(N, B, A, b, c, v, l, e):
     A_ = np.copy(A)
+    V_ = np.copy(V)
     b_ = np.copy(b)
     c_ = np.copy(c)
     v_ = 0
 
     # divide pivoting line by the pivoted element
     b_[l] = b[l]/A[l][N[e]]
-
     for j in [x for idx, x in enumerate(N) if x != N[e]]:
         A_[l][j] = A[l][j]/A[l][N[e]]
-
     for j in [x for idx, x in enumerate(B) if x != B[l]]:
         A_[l][j] = A[l][j]/A[l][N[e]]
+    # for idx, v in enumerate(V[l]):
+    #     V_[l][idx] = V[l][idx]/A[l][N[e]]
 
     A_[l][B[l]] = A_[l][B[l]]/A_[l][N[e]]
     A_[l][N[e]] = 1
@@ -24,15 +28,28 @@ def pivot(N, B, A, b, c, v, l, e):
         if i == l:
             continue
 
+        alpha = A_[l][N[e]]
+
+        print("alpha", alpha)
+
         # all basic elements in line i
         for j in B:
-            A_[i][j] = A[i][j] - A_[l][j]
+            A_[i][j] = A[i][j] - alpha*A_[l][j]
+        
         A_[i][N[e]] = 0
+
+        # guess this is wrong, this should not be just subtracted, but 
+        # it should be query what alpha when multiply with the current line 
+        # i, will set line A[i] - alpha*A[l] = 0
 
         # all non-basic elements in line i
         for j in [x for idx, x in enumerate(N) if x != e]:
-            A_[i][j] = A[i][j] - A_[l][j]
+            A_[i][j] = A[i][j] - alpha*A_[l][j]
         A_[i][N[e]] = 0
+        
+        for idx, v in enumerate(V_[i]):
+            V_[i][idx] = V_[i][j] - alpha*V_[l][j]
+
 
     v_ = v + c[N[e]] * b_[l]
 
