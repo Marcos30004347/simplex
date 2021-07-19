@@ -2,17 +2,6 @@ import numpy as np
 import sys
 
 def pivot(N, B, A, b, c, v, l, e):
-    # print(B[base_idx], ", ", N[e])
-    # print("N =", end=" ")
-    # for i in N:
-    #     print("x" + str(int(i)), end=" ")
-    # print("")     
-    
-    # print("B =", end=" ")
-    # for i in B:
-    #     print("x" + str(int(i)), end=" ")
-    # print("")
-
     A_ = np.copy(A)
     b_ = np.copy(b)
     c_ = np.copy(c)
@@ -55,11 +44,10 @@ def pivot(N, B, A, b, c, v, l, e):
 
     c_[N[e]] = 0
     
-    N_ = np.copy(N)#np.append([x for idx, x in enumerate(N) if x != N[e]], B[l])
-    B_ = np.copy(B)#np.append([x for idx, x in enumerate(N) if x != N[e]], B[l])
+    N_ = np.copy(N)
+    B_ = np.copy(B)
     N_[e] = B_[l]
     B_[l] = N[e]
-    # B_ = np.append([x for idx, x in enumerate(B) if x != B[l]], N[e])
 
     return (N_, B_, A_, b_, c_, v_)
 
@@ -159,8 +147,8 @@ def simplex(A, b, c):
         if delta[l] == np.Inf:
             raise Unbounded
         else:
-            print("entering x" + str(int(N[e])))
-            print("leaving x" + str(int(B[l])))
+            # print("entering x" + str(int(N[e])))
+            # print("leaving x" + str(int(B[l])))
             N, B, A, b, c, v = pivot(N, B, A, b, c, v, l, e)
             print_slack_form(N, B, A, b, c, v)
             it = it+1
