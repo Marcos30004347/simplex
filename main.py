@@ -81,6 +81,7 @@ def pivot(vero, certificate, V, N, B, A, b, c, v, l, e):
 def to_slack_form(A, b, c):
     c_ = np.append(c*-1, np.zeros(len(b)))
     A_ = np.zeros((A.shape[0], A.shape[1] + A.shape[0]))
+
     vero_ = np.zeros((A.shape[0], A.shape[0]))
     certificate_ = np.zeros(len(b))
 
@@ -101,10 +102,12 @@ def to_slack_form(A, b, c):
         row = np.copy(A[r,:])
         ide = np.zeros((len(b)))
         ide[r] = 1
-        for i in range(rows):
+
+        for i in range(columns):
             A_[r][i] = row[i]
+
         for i in range(len(b)):
-            A_[r][rows + i] = ide[i]
+            A_[r][columns + i] = ide[i]
             vero_[r][i] = ide[i]
 
         # A_.append(np.append(row, ide))
@@ -115,7 +118,7 @@ def to_slack_form(A, b, c):
 
     return (vero_, certificate_, V_, np.sort(N_), np.sort(B_), A_, b_, c_, v_)
 
-def auxiliar(vero, certificate, V, N, B, A, c, b, v):
+def to_auxiliar(vero, certificate, V, N, B, A, c, b, v):
     v_ = np.copy(v)
     V_ = np.copy(V)
     N_ = np.copy(N)
@@ -127,14 +130,20 @@ def auxiliar(vero, certificate, V, N, B, A, c, b, v):
     certificate_ = np.copy(certificate)
     c_ = np.append(np.zeros(len(c)), np.zeros(len(b)))
 
+    need_auxiliar = False
+
     # invert lines where b[i] < 0
     for i in range(len(b)):
         if b[i] < 0:
+            need_auxiliar = True
             b_[i] = -1*b[i];
-        for j in range(len(A[i])):
-            A_[i][j] = -1*A[i][j]
-        for j in range(len(vero[i])):
-            vero_[i][j] = -1*vero[i][j]
+            for j in range(len(A[i])):
+                A_[i][j] = -1*A[i][j]
+            for j in range(len(vero[i])):
+                vero_[i][j] = -1*vero[i][j]
+
+    if not need_auxiliar:
+        return (vero, certificate, V, np.sort(N), np.sort(B), A, b, c, v)
     
     # Subtract lines of A from c
     for j in range(len(c)):
@@ -208,6 +217,9 @@ def pick_column(A, c, N):
 
 def simplex(A, b, c):
     vero, certificate, V, N, B, A, b, c, v = to_slack_form(A, b, c)
+    print_slack_form(vero, certificate, V, N, B, A, b, c , v)
+
+    vero, certificate, V, N, B, A, b, c, v = to_auxiliar(vero, certificate, V, N, B, A, c, b, v)
 
     print_slack_form(vero, certificate, V, N, B, A, b, c , v)
 
@@ -229,9 +241,6 @@ def simplex(A, b, c):
         if delta[l] == np.Inf:
             raise Unbounded
         else:
-            # print("entering x" + str(int(N[e])))
-            # print("leaving x" + str(int(B[l])))
-
             vero, certificate, V, N, B, A, b, c, v = pivot(vero, certificate, V, N, B, A, b, c, v, l, e)
             print_slack_form(vero, certificate, V, N, B, A, b, c, v)
 
