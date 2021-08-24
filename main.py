@@ -16,10 +16,10 @@ def pivot(vero, certificate, V, N, B, A, b, c, v, l, e):
     
     # divide pivoting line by the pivoted element
     b_[l] = b[l]/A[l][N[e]]
-    for j in [x for idx, x in enumerate(N) if x != N[e]]:
+    for j in N:
         A_[l][j] = A[l][j]/A[l][N[e]]
     
-    for j in [x for idx, x in enumerate(B) if x != B[l]]:
+    for j in B:
         A_[l][j] = A[l][j]/A[l][N[e]]
 
     for idx, j in enumerate(vero[l]):
@@ -27,6 +27,7 @@ def pivot(vero, certificate, V, N, B, A, b, c, v, l, e):
 
     A_[l][B[l]] = A_[l][B[l]]/A_[l][N[e]]
     A_[l][N[e]] = 1
+    # np.set_printoptions(linewidth=1200)
 
     # pivot
     for i in range(A.shape[0]):
@@ -34,6 +35,7 @@ def pivot(vero, certificate, V, N, B, A, b, c, v, l, e):
             continue
 
         alpha = A_[i][N[e]]
+
 
         b_[i] = b[i] - alpha*b_[l]
 
@@ -47,18 +49,19 @@ def pivot(vero, certificate, V, N, B, A, b, c, v, l, e):
         A_[i][N[e]] = 0
 
         # all non-basic elements in line i
-        for j in [x for idx, x in enumerate(N) if x != e]:
+        for j in N:
             A_[i][j] = A[i][j] - alpha*A_[l][j]
+
         A_[i][N[e]] = 0
     
     v_ = v - c[N[e]]*b_[l]
 
     for j in V:
         certificate_[j] = certificate[j] - c[N[e]]*vero_[l][j]
-    
-    for j in [x for idx, x in enumerate(N) if x != e]:
-        c_[j] = c[j] - c[N[e]]*A_[l][j]
 
+    for j in N:
+        c_[j] = c[j] - c[N[e]]*A_[l][j]
+    
     for j in B:
         c_[j] = c[j] - c[N[e]]*A_[l][j]
 
@@ -66,7 +69,7 @@ def pivot(vero, certificate, V, N, B, A, b, c, v, l, e):
 
     N_[e] = B_[l]
     B_[l] = N[e]
-
+    
     return (vero_, certificate_, V_, N_, B_, A_, b_, c_, v_)
 
 
@@ -245,12 +248,15 @@ def solve(A, b, c):
     initial_variables = len(c)
     # To equalitys form
     vero, certificate, V, N, B, A, b, c, v = toFPIForm(A, b, c)
+    print("FPI: ")
+    printSystem(vero, certificate, V, N, B, A, b, c, v)
 
     C = np.copy(c)
 
     # Solve auxiliary problem
     vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux, slack = toAuxForm(vero, certificate, V, N, B, A, c, b, v)
-    #printSystem(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
+    print("Aux: ")
+    printSystem(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
     vero, certificate, V, N, B, A, b, c, v = simplex(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
 
     # problem is infeasible
@@ -268,11 +274,14 @@ def solve(A, b, c):
         B = np.delete(B, np.where(B == len(c) - k - 1))
     
     # Remove linearly dependent lines
-    for i in range(len(b)):
-        if b[i] == 0:
-            A = np.delete(A, i, 0)
-            b = np.delete(b, i, 0)
-            vero = np.delete(vero, i, 0)
+    # i = 0
+    # while i < len(b):
+    #     if b[i] == 0:
+    #         A = np.delete(A, i, 0)
+    #         b = np.delete(b, i, 0)
+    #         vero = np.delete(vero, i, 0)
+    #         continue
+    #     i = i+1
 
     # Reset certificate
     for j in range(len(certificate)):
@@ -292,17 +301,19 @@ def solve(A, b, c):
                         certificate[j] = certificate[j] - vero[i][j]*alpha
 
 
-    #printSystem(vero, certificate, V, N, B, A, b, C, v)
+    printSystem(vero, certificate, V, N, B, A, b, C, v)
     
     # Solve resulting system
     vero, certificate, V, N, B, A, b, c, v = simplex(vero, certificate, V, N, B, A, b, C, v)
     
-    #printSystem(vero, certificate, V, N, B, A, b, C, v)
+    # printSystem(vero, certificate, V, N, B, A, b, C, v)
     x_ = np.zeros(len(c))
+    np.set_printoptions(linewidth=1200)
+
 
     for i, _ in enumerate(B):
         x_[B[i]] = b[i]
-    
+
     x = np.empty([0])
     for i in range(initial_variables):
         x = np.append(x, x_[i])
@@ -322,6 +333,7 @@ def simplex(vero, certificate, V, N, B, A, b, c, v):
         c = np.round(c, 10)
         b = np.round(b, 10)
         A = np.round(A, 10)
+
         vero = np.round(vero, 10)
         certificate = np.round(certificate, 10)
         
@@ -336,20 +348,24 @@ def simplex(vero, certificate, V, N, B, A, b, c, v):
                 delta[i] = b[i]/A[i][N[e]]
 
         l = np.argmin(delta)
+
         if delta[l] == np.Inf:
             print("ilimitada")
 
             certificate = np.zeros(len(c) - len(b))
+
             certificate[l] = 1
+
             # Build certificate
             k = 0
             for i in B:
                 if k == l:
-                    k = k+1
+                    k = k + 1
                 for j in range(A.shape[0]):
                     if A[j][i] != 0:    
                         certificate[k] = A[j][l]*-1
-                        k = k+1
+                        k = k + 1
+            
             # Build feasible solution
             x = np.zeros(len(c) - len(b))
             for i in range(len(x)):
@@ -369,7 +385,7 @@ def simplex(vero, certificate, V, N, B, A, b, c, v):
             quit()
         else:
             vero, certificate, V, N, B, A, b, c, v = pivot(vero, certificate, V, N, B, A, b, c, v, l, e)
-            #printSystem(vero, certificate, V, N, B, A, b, c, v)
+            printSystem(vero, certificate, V, N, B, A, b, c, v)
 
     return vero, certificate, V, N, B, A, b, c, v
 
