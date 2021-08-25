@@ -29,6 +29,8 @@ def pivot(vero, cert, V, N, B, A, b, c, v, l, e):
 
 
 def toFPIForm(A, b, c):
+    slack_count = len(b)
+
     c_ = np.append(c*-1, np.zeros(len(b)))
     A_ = np.zeros((A.shape[0], A.shape[1] + A.shape[0]))
 
@@ -60,13 +62,16 @@ def toFPIForm(A, b, c):
             A_[r][columns + i] = ide[i]
             vero_[r][i] = ide[i]
 
-        # A_.append(np.append(row, ide))
-        
     b_ = np.copy(b)
+
+    # A_[0][columns] = 0
+    # print(columns)
+    # B_ = np.delete(B_, np.where(B_ == columns))
+    # print(B_)
 
     v_ = 0
 
-    return (vero_, certificate_, V_, np.sort(N_), np.sort(B_), A_, b_, c_, v_)
+    return (slack_count, vero_, certificate_, V_, np.sort(N_), np.sort(B_), A_, b_, c_, v_)
 
 # Transform original problem into auxiliar problem
 def toAuxForm(vero, certificate, V, N, B, A, c, b, v):
@@ -225,7 +230,7 @@ def unbouded(N, B, A, c, b, e):
 def solve(A, b, c):
     initial_variables = len(c)
     # To equalitys form
-    vero, certificate, V, N, B, A, b, c, v = toFPIForm(A, b, c)
+    slack_count, vero, certificate, V, N, B, A, b, c, v = toFPIForm(A, b, c)
 
     printSystem(vero, certificate, V, N, B, A, b, c, v)
 
