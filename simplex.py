@@ -27,7 +27,10 @@ def pivot(vero, cert, V, N, B, A, b, c, v, l, e):
     
     return (vero, cert, V, N, B, A, b, c, v)
 
+
 def toFPIForm(A, b, c):
+    slack_count = len(b)
+
     c_ = np.append(c*-1, np.zeros(len(b)))
     A_ = np.zeros((A.shape[0], A.shape[1] + A.shape[0]))
 
@@ -61,9 +64,14 @@ def toFPIForm(A, b, c):
 
     b_ = np.copy(b)
 
+    # A_[0][columns] = 0
+    # print(columns)
+    # B_ = np.delete(B_, np.where(B_ == columns))
+    # print(B_)
+
     v_ = 0
 
-    return (vero_, certificate_, V_, np.sort(N_), np.sort(B_), A_, b_, c_, v_)
+    return (slack_count, vero_, certificate_, V_, np.sort(N_), np.sort(B_), A_, b_, c_, v_)
 
 # Transform original problem into auxiliar problem
 def toAuxForm(vero, certificate, V, N, B, A, c, b, v):
@@ -222,37 +230,34 @@ def unbouded(N, B, A, c, b, e):
 def solve(A, b, c):
     initial_variables = len(c)
     # To equalitys form
-    vero, certificate, V, N, B, A, b, c, v = toFPIForm(A, b, c)
+    slack_count, vero, certificate, V, N, B, A, b, c, v = toFPIForm(A, b, c)
 
     printSystem(vero, certificate, V, N, B, A, b, c, v)
 
     C = np.copy(c)
 
     # Solve auxiliary problem
-    if((b < 0).sum()):
-        vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux = toAuxForm(vero, certificate, V, N, B, A, c, b, v)
-
-        printSystem(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
-        
-        vero, certificate, V, N, B, A, b, c, v = simplex(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
+    vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux = toAuxForm(vero, certificate, V, N, B, A, c, b, v)
     
-        printSystem(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
+    printSystem(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
+    
+    vero, certificate, V, N, B, A, b, c, v = simplex(vero_aux, certificate_aux, V_aux, N_aux, B_aux, A_aux, b_aux, c_aux, v_aux)
 
-        # problem is infeasible
-        if round(v, 4) != 0:
-            print("inviavel")
-            for xi in certificate:
-                if(np.isclose(xi, 0)): xi = 0
-                print( ('%f' % round(xi, 7)).rstrip('0').rstrip('.'), end=" ")
-            print()
-            quit()
+    # problem is infeasible
+    if round(v, 4) != 0:
+        print("inviavel")
+        for xi in certificate:
+            if(np.isclose(xi, 0)): xi = 0
+            print( ('%f' % round(xi, 7)).rstrip('0').rstrip('.'), end=" ")
+        print()
+        quit()
 
-        # Remove auxiliary columns
-        for k in range(len(b)):
-            A = np.delete(A, len(c) - k - 1, 1)
-            N = np.delete(N, np.where(N == len(c) - k - 1))
-            B = np.delete(B, np.where(B == len(c) - k - 1))
-        
+    # Remove auxiliary columns
+    for k in range(len(b)):
+        A = np.delete(A, len(c) - k - 1, 1)
+        N = np.delete(N, np.where(N == len(c) - k - 1))
+        B = np.delete(B, np.where(B == len(c) - k - 1))
+    
     # Reset certificate
     for j in range(len(certificate)):
         certificate[j] = 0
@@ -267,25 +272,34 @@ def solve(A, b, c):
                     v = v - alpha*b[i]
                     C[:] = C[:] - A[i][:]*alpha
                     certificate[:] = certificate[:] - vero[i][:]*alpha
-                
 
     printSystem(vero, certificate, V, N, B, A, b, C, v)
-
+    
     # Solve resulting system
     vero, certificate, V, N, B, A, b, c, v = simplex(vero, certificate, V, N, B, A, b, C, v)
-
+    
     # printSystem(vero, certificate, V, N, B, A, b, C, v)
     x_ = np.zeros(len(c))
+    np.set_printoptions(linewidth=1200)
+
 
     for i, _ in enumerate(B):
         x_[B[i]] = b[i]
 
     x = np.empty([0])
-
     for i in range(initial_variables):
         x = np.append(x, x_[i])
-
-    return v, x, certificate
+    
+    print("otima")
+    print( ('%f' % round(v, 7)).rstrip('0').rstrip('.'))
+    for xi in x:
+        if(np.isclose(xi, 0)): xi = 0
+        print( ('%f' % round(xi, 7)).rstrip('0').rstrip('.'), end=" ")
+    print()
+    for xi in certificate:
+        if(np.isclose(xi, 0)): xi = 0
+        print( ('%f' % round(xi, 7)).rstrip('0').rstrip('.'), end=" ")
+    print()
 
 def simplex(vero, certificate, V, N, B, A, b, c, v):
     while (np.take(c, N) < 0).sum():
@@ -341,62 +355,23 @@ m = int(first_line[1])
 
 second_line = input().split()
 
-b = np.zeros(m + n - 2)
+c = np.zeros(m)
 
 for i in range(len(second_line)):
-    b[i] = int(second_line[i])
+    c[i] = int(second_line[i])
 
-A = np.zeros((m + n - 2, m))
+A = np.zeros((n, m))
 
-A[0:m, 0:m] = np.eye(m)
-
+b = np.zeros(n)
 
 row = 0
-
-G = np.zeros((n, m))
 
 for line_str in sys.stdin:
     line = line_str.split()
     for i in range(m):
-        G[row][i] = int(line[i])
-
+        A[row][i] = int(line[i])
+    b[row] = int(line[m])
     row = row + 1
 
-# b = np.zeros(n)
 
-for i in range(1, n - 1):
-    A[i + m - 1, :] = G[i, :]
-
-c = np.zeros((m))
-
-for i in range(m):
-    if G[0, i] < 0:
-        c[i] = 1
-    else:
-        c[i] = 0
-
-print(A)
-print(b)
-print(c)
-
-v, x, cert = solve(A, b, c)
-print(cert)
-print( ('%f' % round(v, 7)).rstrip('0').rstrip('.'))
-
-certificate = np.zeros(n)
-certificate[0] = 1 # because s is always included
-certificate[1:-1] = cert[m:]
-
-for xi in x:
-    if(np.isclose(xi, 0)): 
-        xi = 0
-    print(('%f' % round(xi, 7)).rstrip('0').rstrip('.'), end=" ")
-print()
-
-for xi in certificate:
-    if(np.isclose(xi, 0)): 
-        xi = 0
-    print(('%f' % round(xi, 7)).rstrip('0').rstrip('.'), end=" ")
-print()
-
-
+solve(A, b, c)
